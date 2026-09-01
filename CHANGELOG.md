@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- #region changelog -->
 
+## [0.2.0] - 2026-09-01
+
+### Added
+
+- `stopAtFirst` on `internalHostsAmong`, for the caller whose answer is a
+  refusal rather than a report. Found by migrating a server that throws on the
+  first internal host and therefore stops resolving: without the option it would
+  have traded an immediate refusal for the full ten-second DNS budget on a list
+  of a thousand feeds. Off by default — the common question is _which_ of these
+  are internal, and a partial answer would be worse than useless there.
+
+  Concurrency is kept, so the batch in flight finishes and the map may hold more
+  than one entry; what is guaranteed is that no further batch starts. A literal
+  hit short-circuits before any lookup at all.
+
 ## [0.1.0] - 2026-09-01
 
 First release. The classifier is lifted verbatim from nine MCP servers where it

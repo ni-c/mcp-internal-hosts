@@ -207,4 +207,56 @@ describe('resolving a list', () => {
     const found = await internalHostsAmong(['a.example'], { concurrency: 0 });
     expect(found.get('a.example')?.kind).toBe('loopback');
   });
+
+  describe('stopAtFirst', () => {
+    it('starts no further batch once something was found', async () => {
+      // The caller this exists for throws on the first hit, so every lookup
+      // after it is work whose answer is discarded — and against a slow
+      // resolver it is the whole budget.
+      lookup.mockResolvedValue(answers('127.0.0.1'));
+      const names = Array.from({ length: 40 }, (_, i) => `n${i}.example`);
+      const found = await internalHostsAmong(names, {
+        stopAtFirst: true,
+        concurrency: 4,
+      });
+      expect(found.size).toBeGreaterThan(0);
+      // The batch in flight finishes — that is the point of keeping
+      // concurrency — but no later one starts.
+      expect(lookup).toHaveBeenCalledTimes(4);
+    });
+
+    it('spends no lookup at all when a literal already answers it', async () => {
+      // Literals are decided before any DNS, so a list whose first entry is an
+      // address is answered without touching the resolver.
+      lookup.mockResolvedValue(answers('93.184.216.34'));
+      const found = await internalHostsAmong(
+        ['127.0.0.1', ...Array.from({ length: 40 }, (_, i) => `n${i}.example`)],
+        { stopAtFirst: true }
+      );
+      expect([...found.keys()]).toEqual(['127.0.0.1']);
+      expect(lookup).not.toHaveBeenCalled();
+    });
+
+    it('is off by default, so the full map is still the normal answer', async () => {
+      // The negative control: the same input without the option must resolve
+      // everything, or the option would be describing the default.
+      lookup.mockResolvedValue(answers('127.0.0.1'));
+      const names = Array.from({ length: 12 }, (_, i) => `n${i}.example`);
+      const found = await internalHostsAmong(names, { concurrency: 4 });
+      expect(found.size).toBe(names.length);
+      expect(lookup).toHaveBeenCalledTimes(names.length);
+    });
+
+    it('returns an empty map when nothing is internal, having looked at all of them', async () => {
+      // Stopping early must not turn "none found" into "stopped looking".
+      lookup.mockResolvedValue(answers('93.184.216.34'));
+      const names = Array.from({ length: 8 }, (_, i) => `n${i}.example`);
+      const found = await internalHostsAmong(names, {
+        stopAtFirst: true,
+        concurrency: 4,
+      });
+      expect(found.size).toBe(0);
+      expect(lookup).toHaveBeenCalledTimes(names.length);
+    });
+  });
 });

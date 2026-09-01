@@ -121,6 +121,22 @@ export interface ResolveOptions {
   concurrency?: number;
   /** Total budget across every name in one call, in milliseconds. Default 10000. */
   budgetMs?: number;
+  /**
+   * Stop as soon as one internal host is found. Only for
+   * {@link internalHostsAmong}.
+   *
+   * Default false, because the common question is "which of these are internal"
+   * and a partial answer would be worse than useless there. Set it when the
+   * answer is a yes/no that ends in a refusal: a caller that throws on the first
+   * hit has no use for the rest, and resolving them can cost the whole budget.
+   * A list of a thousand feeds whose first entry points at 127.0.0.1 is the case
+   * this exists for — it is the difference between immediate and ten seconds.
+   *
+   * Concurrency is kept either way: the batch already in flight finishes, so the
+   * returned map may hold more than one entry. What is guaranteed is that no
+   * *further* batch is started.
+   */
+  stopAtFirst?: boolean;
 }
 
 /**
@@ -190,6 +206,10 @@ export async function internalHostsAmong(
     else if (isIP(host) === 0 && host !== '') names.push(hostname);
   }
 
+  // A literal hit already answers the yes/no question, and it cost no lookup —
+  // so under `stopAtFirst` there is nothing left to resolve.
+  if (options.stopAtFirst === true && found.size > 0) return found;
+
   for (let i = 0; i < names.length; i += concurrency) {
     if (Date.now() >= deadline) break;
     const batch = names.slice(i, i + concurrency);
@@ -201,6 +221,7 @@ export async function internalHostsAmong(
     );
     for (const [hostname, hit] of results)
       if (hit !== null) found.set(hostname, hit);
+    if (options.stopAtFirst === true && found.size > 0) break;
   }
   return found;
 }

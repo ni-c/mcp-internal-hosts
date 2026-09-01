@@ -100,11 +100,26 @@ it loopback would misdescribe it and make every blocklisted domain unusable.
 list long enough to exhaust the resolver's time cannot let an obvious
 `169.254.169.254` through on the way past.
 
+If your answer is a yes/no that ends in a refusal rather than a report, pass
+`stopAtFirst` — the map is then whatever was found when the first hit came in,
+and no further batch is started:
+
+```ts
+const found = await internalHostsAmong(hostnames, { stopAtFirst: true });
+if (found.size > 0) throw new Error(`refusing ${[...found.keys()][0]}`);
+```
+
+For a thousand feeds whose first entry points at `127.0.0.1`, that is the
+difference between immediate and the whole ten-second budget. Concurrency is
+kept either way, so the batch already in flight finishes and the map may hold
+more than one entry.
+
 | Option        | Default |                                            |
 | ------------- | ------- | ------------------------------------------ |
 | `timeoutMs`   | `3000`  | per name                                   |
 | `concurrency` | `8`     | names resolved at once                     |
 | `budgetMs`    | `10000` | total across one `internalHostsAmong` call |
+| `stopAtFirst` | `false` | stop once one internal host is found       |
 
 ## API
 
