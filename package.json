@@ -1,0 +1,55 @@
+{
+  "name": "mcp-internal-hosts",
+  "version": "0.1.0",
+  "description": "Is this host only reachable from where you stand? Classifies loopback, link-local and cloud-metadata hostnames — numerically, in every spelling",
+  "keywords": [
+    "ssrf",
+    "loopback",
+    "link-local",
+    "metadata",
+    "hostname"
+  ],
+  "license": "MIT",
+  "author": "Willi Thiel",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ni-c/mcp-internal-hosts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ni-c/mcp-internal-hosts/issues"
+  },
+  "homepage": "https://github.com/ni-c/mcp-internal-hosts#readme",
+  "funding": "https://github.com/sponsors/ni-c",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "oxlint --deny-warnings && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "oxlint": "^1.80.0",
+    "prettier": "^3.6.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
