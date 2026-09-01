@@ -1,6 +1,6 @@
 {
   "name": "mcp-internal-hosts",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0",
   "description": "Is this host only reachable from where you stand? Classifies loopback, link-local and cloud-metadata hostnames — numerically, in every spelling",
   "keywords": [
     "ssrf",
