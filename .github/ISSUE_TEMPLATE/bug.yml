@@ -5,34 +5,35 @@ body:
   - type: input
     id: version
     attributes:
-      label: 'wg-easy-mcp version'
-      placeholder: '0.2.3 (npm version, docker tag or commit)'
+      label: 'mcp-internal-hosts version'
+      placeholder: '0.1.0'
     validations:
       required: true
   - type: input
-    id: target
+    id: node
     attributes:
-      label: 'wg-easy version'
-      description: Which version of the system this server talks to?
+      label: Node version
+      placeholder: 'output of node --version'
     validations:
       required: true
-  - type: input
-    id: client
-    attributes:
-      label: MCP client
-      placeholder: 'Claude Code, Claude Desktop, Codex, MCP Inspector, …'
   - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: What you called, what you expected, what you got instead.
+      description: What you called, with which arguments, what you expected and what you got instead.
     validations:
       required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: A snippet that shows it
+      description: The smallest call that reproduces it. A failing test is ideal.
+      render: ts
   - type: textarea
     id: logs
     attributes:
       label: Relevant output
       description: >-
-        Tool result or stderr. Please redact tokens, private keys, internal hostnames
+        Errors or stderr. Please redact tokens, private keys, internal hostnames
         and IPs — this issue is public.
       render: text

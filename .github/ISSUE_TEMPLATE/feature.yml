@@ -1,26 +1,26 @@
 name: Feature request
-description: A tool or capability the server should have
+description: Something this library should be able to do
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
       label: What are you trying to do?
-      description: The situation or workflow, not yet the solution.
+      description: >-
+        The situation, not the solution. What does your server need to express
+        that it cannot express today?
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: workaround
     attributes:
-      label: What should the server be able to do?
-    validations:
-      required: true
-  - type: input
-    id: endpoint
-    attributes:
-      label: 'wg-easy API endpoint (if you know it)'
-      description: A link to the upstream API documentation makes this much faster.
+      label: What are you doing instead right now?
+      description: >-
+        Useful even when the answer is "nothing". If you are working around it,
+        the shape of the workaround usually says what the API is missing.
   - type: textarea
-    id: alternatives
+    id: idea
     attributes:
-      label: Workarounds you considered
+      label: A shape you had in mind
+      description: Optional. Pseudo-code is fine.
+      render: ts

@@ -2,19 +2,41 @@
 
 ## Reporting a vulnerability
 
-Please use [GitHub private vulnerability reporting](https://github.com/ni-c/mcp-internal-hosts/security/advisories/new). Do not open a public issue for an unpatched vulnerability and do not include real credentials, endpoints, client configs or QR codes in a report.
+Please use [GitHub private vulnerability reporting](https://github.com/ni-c/mcp-internal-hosts/security/advisories/new).
+Do not open a public issue for an unpatched vulnerability.
 
 Only the latest release and the current `main` branch receive security fixes.
 
 ## Trust model
 
-mcp-internal-hosts is a stdio MCP server that administers a real [wg-easy](https://github.com/wg-easy/wg-easy) instance. It authenticates with the instance's admin credentials (`WG_EASY_USERNAME`/`WG_EASY_PASSWORD`), so anything that can read the server's process environment effectively holds VPN admin access: it can create, disable and delete peers and download their private keys via client configs and QR codes.
+**Read this before using it as a defence.** This library is a _classifier_. It
+answers a question about a string and connects to nothing. `internalHostKind` is
+exact and has no failure mode beyond a wrong answer; the resolving layer is a
+different matter.
 
-The MCP client decides which tools get called. Deleting a client requires a two-step `confirmToken` handshake, but a client that completes it can still remove peers. Only connect the server to clients you trust with your VPN.
+**`firstInternalAddress` and `internalHostsAmong` are fail-open by design.** A name
+that does not resolve, resolves to nothing, or answers slower than the timeout comes
+back as routable. Two of those three are switches the other side holds: whoever is
+authoritative for a name can answer slowly, or not at all, on purpose. And a DNS
+record can change between this answer and the socket that follows it — the classic
+rebinding window, which no check-then-connect design closes.
 
-## Deployment recommendations
+So: **this is a barrier against the easy case, never the boundary.** For blocking at
+connect time, after redirects, against the address actually dialled, use a filtering
+agent such as
+[`request-filtering-agent`](https://www.npmjs.com/package/request-filtering-agent).
+A serious deployment wants both layers, and this one is the cheaper, earlier, weaker
+of the two.
 
-- Keep the wg-easy admin UI reachable only from trusted networks (VPN or localhost); the MCP server needs the same URL and inherits that exposure.
-- Use a dedicated admin account for the MCP server if your wg-easy version supports multiple users, and rotate its password when revoking access.
-- Treat the credentials as secrets: pass them via the MCP client's `env` block, never on the command line or in files checked into version control.
-- Client configs and QR codes returned by the tools contain WireGuard private keys — handle tool output accordingly.
+## What is deliberately not classified as internal
+
+Private LAN ranges — `10/8`, `172.16/12`, `192.168/16`, `fc00::/7`. A self-hosted
+service legitimately talks to another machine on its own network, and refusing that
+would break the normal case for the people most likely to run it. If your threat
+model needs those refused, that is a policy your caller adds on top; it is not a
+property of the host.
+
+A resolver answering `0.0.0.0` or `::` is reported as routable, not as loopback.
+That is a sinkhole — every ad blocker and corporate DNS filter does it — and it is
+the resolver declining to answer rather than the name addressing your machine.
+Nothing is reachable from it either way.

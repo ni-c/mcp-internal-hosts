@@ -1,11 +1,8 @@
 blank_issues_enabled: true
 contact_links:
   - name: Question or discussion
-    url: https://github.com/ni-c/wg-easy-mcp/discussions
-    about: Setup help, "how do I…", ideas that are not yet concrete features
+    url: https://github.com/ni-c/mcp-internal-hosts/discussions
+    about: Usage help, ideas that are not yet concrete requests
   - name: Security vulnerability
-    url: https://github.com/ni-c/wg-easy-mcp/security/advisories/new
+    url: https://github.com/ni-c/mcp-internal-hosts/security/advisories/new
     about: Please report vulnerabilities privately, never as a public issue
-  - name: Documentation
-    url: https://wg-easy-mcp.ni-c.de
-    about: Guides, configuration and full tool reference
