@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- #region changelog -->
 
+## [0.2.1] - 2026-09-02
+
+### Fixed
+
+- The two metadata endpoints outside `169.254/16` — Alibaba's
+  `100.100.100.200` and Oracle's `192.0.0.192` — were held in a set of
+  dotted-decimal strings and compared as strings. Every spelling this package
+  exists for therefore walked past them: `URL` canonicalises
+  `http://[::ffff:100.100.100.200]/` to `[::ffff:6464:64c8]`, the kernel dials
+  that as plain IPv4, and the classifier answered `null`. The same address in
+  dotted form answered `link-local`.
+
+  They are now compared on the octets inside `ipv4Kind`, so they inherit every
+  unwrapping the IPv6 path already does — mapped, IPv4-compatible,
+  IPv4-translated and NAT64. The set is gone.
+
+  The tests had both axes and never crossed them: one block covered mapped and
+  NAT64 spellings, but only for `127.0.0.1` and `169.254.169.254`; another
+  covered these two addresses, but only in dotted decimal. That crossing is now
+  a test, along with the neighbouring addresses, so the octet comparison cannot
+  quietly widen into a `/24`.
+
+- Trimming the root label used `/\.+$/`, which is quadratic on a host of dots
+  with no match: the engine retries from every start position, consumes to the
+  end and backtracks. `new URL()` accepts a hostname of any length — IDNA does
+  not enforce the DNS limit — and this runs on the first line of every exported
+  function, before anything checks a length. A 150k-dot hostname held the event
+  loop for 11.8 seconds; Node is single-threaded, so that is the whole server,
+  not one call. It now walks back from the end by index: the same input takes
+  0.1 ms, and 400k dots stay linear at 0.5 ms.
+
+### Changed
+
+- The comment and `SECURITY.md` no longer claim that nothing is reachable
+  through a sinkholed `0.0.0.0`. That was measured and it is false — `connect()`
+  to `0.0.0.0` reaches loopback on Linux and macOS. The behaviour is unchanged
+  and deliberately so: the answer describes this resolver, not the fetcher, and
+  refusing on it would break sinkholed domains for every caller whose fetch
+  happens elsewhere. What changed is that the limitation is now written down
+  where a caller looks for it, with the pointer to a connect-time filter for
+  anyone whose own process does the connecting.
+
 ## [0.2.0] - 2026-09-01
 
 ### Added
