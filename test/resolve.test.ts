@@ -63,7 +63,13 @@ describe('resolving a name', () => {
     // Every ad blocker and every corporate DNS filter answers 0.0.0.0 or ::.
     // That is the resolver declining to answer, not the name addressing this
     // machine — calling it loopback would misdescribe it and make every
-    // blocklisted domain unusable. Nothing is reachable from it either way.
+    // blocklisted domain unusable.
+    //
+    // This is a decision, not a proof of safety: connect() to 0.0.0.0 does
+    // reach loopback on Linux and macOS. It is skipped because the answer
+    // describes this resolver and not the fetcher, the same reason NXDOMAIN is
+    // skipped. SECURITY.md says so, and the literal is still loopback — see the
+    // classifier tests.
     for (const sink of ['0.0.0.0', '::', '0:0:0:0:0:0:0:0']) {
       lookup.mockResolvedValue(answers(sink));
       expect(await firstInternalAddress('blocked.example'), sink).toBeNull();
