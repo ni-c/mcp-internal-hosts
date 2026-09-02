@@ -39,4 +39,16 @@ property of the host.
 A resolver answering `0.0.0.0` or `::` is reported as routable, not as loopback.
 That is a sinkhole — every ad blocker and corporate DNS filter does it — and it is
 the resolver declining to answer rather than the name addressing your machine.
-Nothing is reachable from it either way.
+
+Be clear about what that costs. On Linux and macOS, `connect()` to `0.0.0.0`
+reaches the loopback services of the machine that dials it, so a name with an
+authoritative `0.0.0.0` record does get past this check. It is skipped anyway,
+for the same reason `NXDOMAIN` is: the answer describes _your_ resolver, and in
+the deployments this library is written for the fetch happens elsewhere —
+deciding on it would refuse sinkholed domains on behalf of a fetcher that would
+never have seen the record. The literal `0.0.0.0` is a different question and is
+classified as loopback.
+
+If your own process is the one that connects, this is one of the cases a
+classifier cannot close for you: use a connect-time filter such as
+`request-filtering-agent`, which checks after resolution rather than before it.

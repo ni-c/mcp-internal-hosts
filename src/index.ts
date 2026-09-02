@@ -34,16 +34,6 @@ const METADATA_NAMES = new Set([
 ]);
 
 /**
- * Metadata endpoints that sit outside 169.254/16.
- *
- * Alibaba Cloud answers on 100.100.100.200, which is carrier-grade NAT space,
- * and Oracle's legacy endpoint is 192.0.0.192, which is IETF protocol
- * assignments. Neither is link-local by address, but both are the same thing by
- * purpose, and neither is somewhere a legitimate target lives.
- */
-const METADATA_ADDRESSES = new Set(['100.100.100.200', '192.0.0.192']);
-
-/**
  * Classifies a hostname that addresses the machine itself, its link-local
  * range, or a cloud metadata service — or returns null for anything routable.
  *
@@ -62,7 +52,6 @@ export function internalHostKind(hostname: string): InternalHostKind | null {
   const host = bareHost(hostname);
   if (host === 'localhost' || host.endsWith('.localhost')) return 'loopback';
   if (METADATA_NAMES.has(host)) return 'link-local';
-  if (METADATA_ADDRESSES.has(host)) return 'link-local';
 
   const version = isIP(host);
   if (version === 4) return ipv4Kind(host.split('.').map(Number));
@@ -77,20 +66,29 @@ export function internalHostKind(hostname: string): InternalHostKind | null {
 }
 
 function bareHost(hostname: string): string {
-  return (
-    hostname
-      .toLowerCase()
-      // URL.hostname keeps the brackets around an IPv6 literal, so a bare '::1'
-      // would never match.
-      .replace(/^\[|]$/g, '')
-      // A scope id belongs to the interface, not to the address. `isIP` accepts
-      // it, so leaving it on would desynchronise every check below from what
-      // `isIP` just agreed was an address.
-      .replace(/%.*$/, '')
-      // 'localhost.' is the same name as 'localhost' — the root label is what
-      // makes it fully qualified, not a different host.
-      .replace(/\.+$/, '')
-  );
+  const host = hostname
+    .toLowerCase()
+    // URL.hostname keeps the brackets around an IPv6 literal, so a bare '::1'
+    // would never match.
+    .replace(/^\[|]$/g, '')
+    // A scope id belongs to the interface, not to the address. `isIP` accepts
+    // it, so leaving it on would desynchronise every check below from what
+    // `isIP` just agreed was an address.
+    .replace(/%.*$/, '');
+
+  // 'localhost.' is the same name as 'localhost' — the root label is what makes
+  // it fully qualified, not a different host.
+  //
+  // Walked back from the end rather than matched with /\.+$/, which is
+  // quadratic: on a host that is all dots the engine tries every start
+  // position, consumes to the end, fails the anchor and backtracks. A hostname
+  // of 150k dots — which `new URL()` accepts, because IDNA does not enforce the
+  // DNS length limit — spent 11.8 seconds here, and this runs before any
+  // length check, on the first line of every exported function. Node is
+  // single-threaded, so that is the whole server, not one call.
+  let end = host.length;
+  while (end > 0 && host.charCodeAt(end - 1) === 0x2e) end--;
+  return host.slice(0, end);
 }
 
 /**
@@ -173,7 +171,17 @@ export async function firstInternalAddress(
     // every ad blocker and every corporate DNS filter does. It is the resolver
     // declining to answer, not the name addressing this machine — reporting it
     // as loopback would misdescribe it and make every blocklisted domain
-    // unusable. Nothing is reachable from it either way.
+    // unusable.
+    //
+    // Note what this does *not* claim. On Linux and macOS, connect() to
+    // 0.0.0.0 reaches this machine's loopback services, so a name with an
+    // authoritative 0.0.0.0 record is a real way past this check — measured,
+    // not theorised. It is skipped anyway, for the same reason NXDOMAIN is:
+    // this answer describes *our* resolver, and in every caller of this library
+    // the fetch happens somewhere else. Deciding on it would refuse sinkholed
+    // domains for a fetcher that would never have seen the record. Whoever
+    // fetches in-process needs a connect-time filter, not this classifier —
+    // see SECURITY.md.
     if (isUnspecified(address)) continue;
     const kind = internalHostKind(address);
     if (kind !== null) return { address, kind };
@@ -300,11 +308,24 @@ function embeddedIpv4(groups: number[]): number[] | null {
 }
 
 function ipv4Kind(octets: number[]): InternalHostKind | null {
-  const [a = 0, b = 0] = octets;
+  const [a = 0, b = 0, c = 0, d = 0] = octets;
   // 0.0.0.0/8 ('this host', RFC 1122) and 127/8 both reach the machine itself.
   if (a === 0 || a === 127) return 'loopback';
   // 169.254/16, which holds 169.254.169.254 — the AWS/GCP/Azure metadata service.
   if (a === 169 && b === 254) return 'link-local';
+  // The two metadata endpoints that sit outside 169.254/16: Alibaba Cloud
+  // answers on 100.100.100.200, which is carrier-grade NAT space, and Oracle's
+  // legacy endpoint is 192.0.0.192, which is IETF protocol assignments. Neither
+  // is link-local by address, but both are the same thing by purpose.
+  //
+  // Compared on the octets, not held in a set of strings. A set only ever
+  // matched dotted-decimal, so `[::ffff:6464:64c8]` — which is this address,
+  // written the way `URL` canonicalises an IPv4-mapped literal — walked past
+  // the one check that exists for it, in the one library whose whole point is
+  // that spellings differ more than they look. Here the two inherit every
+  // unwrapping above: mapped, compatible, translated and NAT64.
+  if (a === 100 && b === 100 && c === 100 && d === 200) return 'link-local';
+  if (a === 192 && b === 0 && c === 0 && d === 192) return 'link-local';
   return null;
 }
 

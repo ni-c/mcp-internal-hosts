@@ -87,6 +87,63 @@ describe('internalHostKind', () => {
     expect(internalHostKind(hostnameOf(url))).toBe(kind);
   });
 
+  // The two axes above have to cross. The metadata endpoints outside 169.254/16
+  // used to be a set of dotted-decimal strings, so every spelling the rest of
+  // this file exists for walked straight past them: `URL` canonicalises
+  // `[::ffff:100.100.100.200]` to `[::ffff:6464:64c8]`, and the kernel dials
+  // that as plain IPv4. One test per spelling the unwrapping supports, because
+  // "we handle mapped literals" and "we know this address" being true
+  // separately is exactly how this was missed.
+  it.each([
+    ['http://[::ffff:100.100.100.200]/latest/meta-data/', 'link-local'],
+    ['http://[::ffff:192.0.0.192]/latest/', 'link-local'],
+    ['http://[::100.100.100.200]/x', 'link-local'],
+    ['http://[64:ff9b::100.100.100.200]/x', 'link-local'],
+    ['http://[::ffff:0:100.100.100.200]/x', 'link-local'],
+  ])('classifies the mapped metadata endpoint %s as %s', (url, kind) => {
+    expect(internalHostKind(hostnameOf(url))).toBe(kind);
+  });
+
+  it.each([
+    ['::ffff:6464:64c8', 'link-local'],
+    ['::ffff:c000:c0', 'link-local'],
+    ['100.100.100.200.', 'link-local'],
+    ['::ffff:100.100.100.200%eth0', 'link-local'],
+  ])('classifies the bare metadata literal %s as %s', (host, kind) => {
+    expect(internalHostKind(host)).toBe(kind);
+  });
+
+  // Neighbours of the two endpoints, so the octet comparison cannot quietly
+  // widen into 100.100.100.0/24 or 192.0.0.0/24.
+  it.each([
+    'http://100.100.100.201/x',
+    'http://100.100.100.199/x',
+    'http://100.100.101.200/x',
+    'http://192.0.0.193/x',
+    'http://192.0.0.191/x',
+    'http://192.0.1.192/x',
+  ])('leaves the metadata neighbour %s alone', (url) => {
+    expect(internalHostKind(hostnameOf(url))).toBeNull();
+  });
+
+  // `new URL()` accepts a hostname of any length — IDNA does not enforce the
+  // DNS limit — and this runs on the first line of every exported function,
+  // before anything checks a length. With /\.+$/ trimming the root label, a
+  // host of 150k dots held the event loop for 11.8 seconds; Node is
+  // single-threaded, so that is the whole server. The bound is loose on
+  // purpose: it only has to separate linear from quadratic, not to pin a speed.
+  it('trims the root label in linear time', () => {
+    const host = `${'.'.repeat(150_000)}a`;
+    const started = performance.now();
+    expect(internalHostKind(host)).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  it('trims a trailing run of dots down to the name itself', () => {
+    expect(internalHostKind('localhost...')).toBe('loopback');
+    expect(internalHostKind('.'.repeat(2000))).toBeNull();
+  });
+
   // A scope id belongs to the interface, not the address. `isIP` accepts it, so
   // leaving it on would desynchronise the dotted-quad fold from what isIP just
   // agreed was an address.
