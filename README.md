@@ -1,8 +1,13 @@
 # mcp-internal-hosts
 
+<!-- badges: start -->
+
+[![CI](https://img.shields.io/github/actions/workflow/status/ni-c/mcp-internal-hosts/ci.yml?branch=main&label=CI)](https://github.com/ni-c/mcp-internal-hosts/actions/workflows/ci.yml)
+<a href="https://socket.dev/npm/package/mcp-internal-hosts"><img src="https://socket.dev/api/badge/npm/package/mcp-internal-hosts" alt="Socket supply-chain report" height="20"></a>
+<br>
 [![npm version](https://img.shields.io/npm/v/mcp-internal-hosts)](https://www.npmjs.com/package/mcp-internal-hosts)
-[![node](https://img.shields.io/node/v/mcp-internal-hosts)](https://nodejs.org)
-[![license](https://img.shields.io/npm/l/mcp-internal-hosts)](LICENSE)
+[![sponsor](https://img.shields.io/badge/sponsor-ni--c-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/ni-c)
+<!-- badges: end -->
 
 Is this host only reachable from where you stand? Classifies loopback,
 link-local and cloud-metadata hostnames — numerically, in every spelling.
