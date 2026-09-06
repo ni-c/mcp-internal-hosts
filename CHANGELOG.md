@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- #region changelog -->
 
+## [Unreleased]
+
+### Changed
+
+- Source maps are no longer published in the npm tarball. Node reads them only
+  under `--enable-source-maps`, which nothing here sets, and the maps pointed at
+  a `src/` this package does not ship — so a stack trace under that flag named a
+  file nobody could open. `dist/**/*.js` is unchanged; the package is about a
+  fifth smaller.
+
+[Unreleased]: https://github.com/ni-c/mcp-internal-hosts/compare/v0.2.1...HEAD
+
 ## [0.2.1] - 2026-09-02
 
 ### Fixed
