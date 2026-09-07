@@ -129,7 +129,7 @@ describe('resolving a list', () => {
       '127.0.0.1',
       'localhost',
     ]);
-    expect([...found.keys()].sort()).toEqual(['127.0.0.1', 'localhost']);
+    expect([...found.keys()].toSorted()).toEqual(['127.0.0.1', 'localhost']);
     expect(found.get('localhost')?.kind).toBe('loopback');
   });
 
