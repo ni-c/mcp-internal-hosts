@@ -16,7 +16,7 @@ npm run build
 - **Tests.** A behaviour change comes with a test that fails without it. Say so in
   the pull request: "control run with the change reverted — this fails" is worth
   more than a green tick, because a test that cannot fail proves nothing. CI runs
-  on Node 22 and 24, plus oxlint, prettier, `npm audit` and CodeQL.
+  on Node 24 and 26, plus oxlint, prettier, `npm audit` and CodeQL.
 - **Coverage gates are not lowered.** Answer a drop with tests. If a line genuinely
   cannot be reached, say why in `vitest.config.ts` rather than chasing the number
   with a cast.
